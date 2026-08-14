@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.db*
+.env
+.env.local
+.pytest_cache/
+.coverage
+*.log
+
+# Backup made during local debugging — not part of the shipped model set.
+app/ml/models/*.bak
