@@ -15,4 +15,4 @@ gunicorn==22.0.0
 reportlab==5.0.0
 pdfplumber==0.11.10
 flask-swagger-ui==5.32.12
-shap==0.52.0
+shap==0.51.0
