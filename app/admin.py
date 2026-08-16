@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 
 from .ml import predictor
@@ -34,6 +34,28 @@ def list_users():
         d["screening_count"] = TestResult.query.filter_by(user_id=u.id).count()
         out.append(d)
     return jsonify(out), 200
+
+
+@admin_bp.patch("/users/<user_id>/admin")
+@admin_required
+def set_user_admin(user_id):
+    """Grants or revokes admin access for a user — lets an admin promote
+    someone through the UI instead of needing the ADMIN_EMAILS env var and a
+    server restart every time. No self-demotion guard: if you lock yourself
+    out, ADMIN_EMAILS + a login still recovers access (see auth.py's
+    backfill), so an extra safety check here would just be redundant."""
+    payload = request.get_json(silent=True) or {}
+    is_admin = payload.get("is_admin")
+    if not isinstance(is_admin, bool):
+        return jsonify({"error": "'is_admin' (boolean) is required"}), 400
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({"error": "user not found"}), 404
+
+    target.is_admin = is_admin
+    db.session.commit()
+    return jsonify(target.to_dict()), 200
 
 
 @admin_bp.get("/feedback")

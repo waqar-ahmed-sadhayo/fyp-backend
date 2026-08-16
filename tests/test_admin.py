@@ -46,6 +46,58 @@ def test_admin_metrics_includes_confusion_matrix(client, admin_headers):
     assert "cv_f1_scores" in body["heart"]
 
 
+def test_set_user_admin_requires_auth(client, registered_user):
+    res = client.patch(f"/api/admin/users/{registered_user['user']['id']}/admin", json={"is_admin": True})
+    assert res.status_code == 401
+
+
+def test_set_user_admin_rejects_non_admin(client, auth_headers, registered_user):
+    res = client.patch(
+        f"/api/admin/users/{registered_user['user']['id']}/admin",
+        json={"is_admin": True}, headers=auth_headers,
+    )
+    assert res.status_code == 403
+
+
+def test_admin_can_promote_a_user(client, admin_headers, auth_headers, registered_user):
+    user_id = registered_user["user"]["id"]
+    res = client.patch(
+        f"/api/admin/users/{user_id}/admin", json={"is_admin": True}, headers=admin_headers,
+    )
+    assert res.status_code == 200
+    assert res.get_json()["is_admin"] is True
+
+    # takes effect immediately, not just on next login
+    me = client.get("/api/auth/me", headers=auth_headers)
+    assert me.get_json()["user"]["is_admin"] is True
+
+
+def test_admin_can_demote_a_user(client, admin_headers, auth_headers, registered_user):
+    user_id = registered_user["user"]["id"]
+    client.patch(f"/api/admin/users/{user_id}/admin", json={"is_admin": True}, headers=admin_headers)
+
+    res = client.patch(
+        f"/api/admin/users/{user_id}/admin", json={"is_admin": False}, headers=admin_headers,
+    )
+    assert res.status_code == 200
+    assert res.get_json()["is_admin"] is False
+
+
+def test_set_user_admin_requires_boolean(client, admin_headers, registered_user):
+    user_id = registered_user["user"]["id"]
+    res = client.patch(
+        f"/api/admin/users/{user_id}/admin", json={"is_admin": "yes"}, headers=admin_headers,
+    )
+    assert res.status_code == 400
+
+
+def test_set_user_admin_unknown_user(client, admin_headers):
+    res = client.patch(
+        "/api/admin/users/does-not-exist/admin", json={"is_admin": True}, headers=admin_headers,
+    )
+    assert res.status_code == 404
+
+
 def test_login_backfills_admin_status(client):
     # Register before the email is an admin email (simulated by registering a
     # different, non-admin account, then logging in — the fixture's admin
