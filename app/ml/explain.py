@@ -10,6 +10,10 @@ There's no equivalently fast *exact* algorithm for a kernel SVM, so
 `explain()` returns `None` for SVM-chosen models rather than paying a
 multi-second latency tax for an approximate answer — see
 phases/backend/phase-2-ml-pipeline-prediction-api.md for that tradeoff.
+The same applies to a stacking-ensemble pick (see train_models.py): its
+base estimators can each be explained individually, but there's no single
+fast *exact* SHAP algorithm across the blended whole, so it falls into
+this same "no explanation" bucket rather than an approximate one.
 """
 import numpy as np
 

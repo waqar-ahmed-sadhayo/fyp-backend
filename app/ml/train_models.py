@@ -31,13 +31,13 @@ from sklearn.base import clone
 from sklearn.datasets import load_breast_cancer
 from sklearn.ensemble import (GradientBoostingClassifier,
                                HistGradientBoostingClassifier,
-                               RandomForestClassifier)
+                               RandomForestClassifier, StackingClassifier)
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (accuracy_score, f1_score, precision_score,
                               recall_score, roc_auc_score, confusion_matrix)
 from sklearn.model_selection import (GridSearchCV, StratifiedKFold,
-                                      cross_val_predict, train_test_split)
+                                      cross_val_predict, cross_val_score, train_test_split)
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.svm import SVC
 
@@ -149,6 +149,7 @@ def train_and_select(X, y, disease, use_smote=True):
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
     scores = {}
+    stds = {}
     fitted = {}
     for name, (estimator, grid) in search_space.items():
         # n_jobs bounded (not -1): these datasets are tiny, so process-spawn
@@ -158,17 +159,49 @@ def train_and_select(X, y, disease, use_smote=True):
         search = GridSearchCV(estimator, grid, cv=cv, scoring="f1", n_jobs=2, verbose=0)
         search.fit(X_train_scaled, y_train)
         scores[name] = round(float(search.best_score_), 4)
+        stds[name] = round(float(search.cv_results_["std_test_score"][search.best_index_]), 4)
         fitted[name] = search.best_estimator_
-        print(f"  {name}: cv_f1={scores[name]}", flush=True)
+        print(f"  {name}: cv_f1={scores[name]} (+/-{stds[name]})", flush=True)
 
-    best_name = max(scores, key=scores.get)
+    # A stacked blend of the 3 strongest individual candidates, fed into a
+    # logistic-regression meta-learner — one more candidate in the same
+    # scores/stds/fitted comparison below, not a special-cased override. On
+    # a well-separated dataset (breast_cancer/kidney) it simply won't beat
+    # the individual winner and gets ignored; on a noisier one it sometimes
+    # recovers a point or two by averaging out each base model's mistakes.
+    top3 = sorted(scores, key=scores.get, reverse=True)[:3]
+    stack = StackingClassifier(
+        estimators=[(n, fitted[n]) for n in top3],
+        final_estimator=LogisticRegression(max_iter=5000, random_state=RANDOM_STATE),
+        cv=cv, n_jobs=2,
+    )
+    stack_cv = cross_val_score(stack, X_train_scaled, y_train, cv=cv, scoring="f1")
+    scores["stacking"] = round(float(stack_cv.mean()), 4)
+    stds["stacking"] = round(float(stack_cv.std()), 4)
+    stack.fit(X_train_scaled, y_train)
+    fitted["stacking"] = stack
+    print(f"  stacking({'+'.join(top3)}): cv_f1={scores['stacking']} (+/-{stds['stacking']})", flush=True)
+
+    # One-standard-error rule (Breiman et al.) instead of a raw argmax: with
+    # 5 folds on a few-hundred-row dataset, a 0.003 CV-F1 edge is well within
+    # noise, not a real signal. This is exactly what picked SVM over Random
+    # Forest for diabetes in an earlier round (0.8216 vs 0.8184 CV F1) and
+    # then lost 4.5pp of test accuracy for it — see
+    # phases/backend/phase-2-ml-pipeline-prediction-api.md. Among candidates
+    # within one SE of the top score, prefer the most stable (lowest std)
+    # one rather than whichever happened to land highest this split.
+    best_raw = max(scores, key=scores.get)
+    se = stds[best_raw] / np.sqrt(cv.get_n_splits())
+    within_se = [n for n in scores if scores[n] >= scores[best_raw] - se]
+    best_name = min(within_se, key=lambda n: stds[n])
     best_model = fitted[best_name]
-    print(f"  -> best: {best_name}, tuning decision threshold...", flush=True)
+    print(f"  -> best: {best_name} (within 1 SE of {best_raw}: {within_se}), tuning decision threshold...", flush=True)
 
     threshold = best_threshold_for_f1(best_model, X_train_scaled, y_train, cv)
 
     metrics = evaluate(best_model, X_test_scaled, y_test, threshold=threshold)
     metrics["cv_f1_scores"] = scores
+    metrics["cv_f1_stds"] = stds
     metrics["chosen_model"] = best_name
     metrics["decision_threshold"] = threshold
 

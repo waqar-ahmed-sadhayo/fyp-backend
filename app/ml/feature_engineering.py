@@ -15,7 +15,7 @@ import pandas as pd
 
 _DERIVED = {
     "heart": ["thalach_age_dev"],
-    "diabetes": ["glucose_bmi", "homa_ir_proxy"],
+    "diabetes": ["glucose_bmi", "homa_ir_proxy", "insulin_missing", "skin_thickness_missing"],
     "liver": ["bilirubin_ratio", "ast_alt_ratio"],
 }
 
@@ -37,8 +37,15 @@ def add_derived_features(df: pd.DataFrame, disease: str) -> pd.DataFrame:
         # Glucose x BMI interaction — metabolic risk compounds across both.
         df["glucose_bmi"] = df["Glucose"] * df["BMI"] / 1000
         # HOMA-IR: a real insulin-resistance index used in diabetes research,
-        # (fasting glucose mg/dL x fasting insulin uU/mL) / 405.
+        # (fasting glucose mg/dL x fasting insulin uU/mL) / 405. Insulin is
+        # missing (encoded as 0 -> NaN upstream) for ~49% of this dataset's
+        # rows, so homa_ir_proxy is NaN there too and ends up just the
+        # imputed median at inference time — carrying no real signal. The
+        # two flags below let the model tell "truly average" apart from
+        # "we don't actually know" instead of silently conflating them.
         df["homa_ir_proxy"] = (df["Glucose"] * df["Insulin"]) / 405
+        df["insulin_missing"] = df["Insulin"].isna().astype(float)
+        df["skin_thickness_missing"] = df["SkinThickness"].isna().astype(float)
 
     elif disease == "liver":
         # Direct/Total bilirubin ratio distinguishes hepatocellular from

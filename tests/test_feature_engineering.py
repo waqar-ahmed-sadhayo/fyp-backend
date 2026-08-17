@@ -6,7 +6,9 @@ from app.ml.feature_engineering import add_derived_features, derived_feature_nam
 
 def test_derived_feature_names_known_diseases():
     assert derived_feature_names("heart") == ["thalach_age_dev"]
-    assert derived_feature_names("diabetes") == ["glucose_bmi", "homa_ir_proxy"]
+    assert derived_feature_names("diabetes") == [
+        "glucose_bmi", "homa_ir_proxy", "insulin_missing", "skin_thickness_missing",
+    ]
     assert derived_feature_names("liver") == ["bilirubin_ratio", "ast_alt_ratio"]
 
 
@@ -24,10 +26,22 @@ def test_heart_thalach_age_dev():
 
 
 def test_diabetes_derived_features():
-    df = pd.DataFrame([{"Glucose": 120, "BMI": 30, "Insulin": 80}])
+    df = pd.DataFrame([{"Glucose": 120, "BMI": 30, "Insulin": 80, "SkinThickness": 25}])
     out = add_derived_features(df, "diabetes")
     assert out["glucose_bmi"].iloc[0] == 120 * 30 / 1000
     assert out["homa_ir_proxy"].iloc[0] == (120 * 80) / 405
+    assert out["insulin_missing"].iloc[0] == 0.0
+    assert out["skin_thickness_missing"].iloc[0] == 0.0
+
+
+def test_diabetes_missing_indicator_flags():
+    df = pd.DataFrame([{"Glucose": 120, "BMI": 30, "Insulin": np.nan, "SkinThickness": np.nan}])
+    out = add_derived_features(df, "diabetes")
+    assert out["insulin_missing"].iloc[0] == 1.0
+    assert out["skin_thickness_missing"].iloc[0] == 1.0
+    # homa_ir_proxy needs Insulin — stays NaN (median-imputed downstream),
+    # not silently coerced to some fabricated number.
+    assert np.isnan(out["homa_ir_proxy"].iloc[0])
 
 
 def test_liver_derived_features():

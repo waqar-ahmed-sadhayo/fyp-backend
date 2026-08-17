@@ -66,14 +66,15 @@ def test_predict_includes_shap_explanation(client, auth_headers):
 
 def test_predict_explanation_matches_chosen_model_type(client, auth_headers):
     # LR/RF/GB/HistGB-chosen diseases get a fast exact explanation; an
-    # SVM-chosen disease deliberately gets None instead of a slow approximate
-    # one — see app/ml/explain.py's docstring. Whichever model won this
-    # training run, the explanation field should be consistent with it.
+    # SVM- or stacking-chosen disease deliberately gets None instead of a
+    # slow approximate one — see app/ml/explain.py's docstring. Whichever
+    # model won this training run, the explanation field should be
+    # consistent with it.
     for disease in DISEASES:
         res = client.post(f"/api/predict/{disease}", json={}, headers=auth_headers)
         assert res.status_code == 201, (disease, res.get_json())
         body = res.get_json()
-        if body["model_used"] == "svm":
+        if body["model_used"] in ("svm", "stacking"):
             assert body["explanation"] is None, disease
         else:
             assert body["explanation"] is not None, disease

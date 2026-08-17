@@ -3,14 +3,14 @@ from app.ml import explain, predictor
 
 def test_explain_returns_ranked_contributions_or_none():
     """Every disease should either get a fast, ranked explanation (LR/RF/GB/
-    HistGB-chosen models) or explicitly None (SVM-chosen — no fast exact
-    SHAP algorithm, see explain.py's docstring for why that's a deliberate
-    tradeoff rather than an oversight)."""
+    HistGB-chosen models) or explicitly None (SVM- or stacking-chosen — no
+    fast exact SHAP algorithm, see explain.py's docstring for why that's a
+    deliberate tradeoff rather than an oversight)."""
     for disease in predictor.DISEASES:
         result = explain.explain(disease, {})
         chosen_model = predictor.get_metrics(disease)["chosen_model"]
 
-        if chosen_model == "svm":
+        if chosen_model in ("svm", "stacking"):
             assert result is None, disease
             continue
 

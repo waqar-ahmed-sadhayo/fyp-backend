@@ -1,12 +1,12 @@
 {
   "heart": {
-    "chosen_model": "logistic_regression",
-    "accuracy": 0.8033,
-    "f1": 0.8421,
-    "roc_auc": 0.8777,
-    "precision": 0.7442,
-    "recall": 0.9697,
-    "decision_threshold": 0.47,
+    "chosen_model": "hist_gradient_boosting",
+    "accuracy": 0.8197,
+    "f1": 0.8493,
+    "roc_auc": 0.8766,
+    "precision": 0.775,
+    "recall": 0.9394,
+    "decision_threshold": 0.49,
     "feature_names": [
       "age",
       "sex",
@@ -24,13 +24,13 @@
     ]
   },
   "diabetes": {
-    "chosen_model": "svm",
-    "accuracy": 0.7078,
-    "f1": 0.6281,
-    "roc_auc": 0.7998,
-    "precision": 0.5672,
-    "recall": 0.7037,
-    "decision_threshold": 0.39,
+    "chosen_model": "stacking",
+    "accuracy": 0.7597,
+    "f1": 0.6942,
+    "roc_auc": 0.8222,
+    "precision": 0.6269,
+    "recall": 0.7778,
+    "decision_threshold": 0.38,
     "feature_names": [
       "Pregnancies",
       "Glucose",
