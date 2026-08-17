@@ -1,7 +1,15 @@
 import os
 from datetime import timedelta
 
+from dotenv import load_dotenv
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Loads backend/.env for local dev (python-dotenv was already a listed
+# dependency but never actually called anywhere). No-op in production —
+# Render sets real env vars directly, and load_dotenv() never overrides an
+# already-set environment variable by default.
+load_dotenv(os.path.join(BASE_DIR, "..", ".env"))
 
 
 def _normalize_db_url(url):
@@ -28,6 +36,12 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     MODEL_DIR = os.path.join(BASE_DIR, "ml", "models")
+
+    # Used by app/ai_assistant.py for the "AI Suggestions" and chat
+    # assistant features. No default/fallback on purpose — a missing key
+    # should fail loudly at the call site (see ai_assistant.py), not
+    # silently authenticate as "".
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024  # 5 MB upload cap
     UPLOAD_EXTENSIONS = {".csv", ".pdf"}

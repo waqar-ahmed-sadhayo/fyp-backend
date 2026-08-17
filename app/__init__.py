@@ -21,6 +21,8 @@ def create_app(config_class=Config):
         return db.session.get(RevokedToken, jwt_payload["jti"]) is not None
 
     from .admin import admin_bp
+    from .ai_suggestions import ai_suggestions_bp
+    from .assistant_chat import assistant_chat_bp
     from .auth import auth_bp
     from .docs import spec_bp, swagger_ui_bp
     from .feedback import feedback_bp
@@ -38,6 +40,8 @@ def create_app(config_class=Config):
     app.register_blueprint(user_bp)
     app.register_blueprint(feedback_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(ai_suggestions_bp)
+    app.register_blueprint(assistant_chat_bp)
     app.register_blueprint(spec_bp)
     app.register_blueprint(swagger_ui_bp)
 
