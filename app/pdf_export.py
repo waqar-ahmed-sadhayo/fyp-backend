@@ -17,7 +17,7 @@ MUTED = colors.HexColor("#5c7480")
 RISK_HIGH = colors.HexColor("#dc2626")
 RISK_LOW = colors.HexColor("#16a34a")
 
-NEGATIVE_LABELS = {"benign", "negative"}
+NEGATIVE_LABELS = {"benign", "negative", "no_stone"}
 
 
 def build_result_pdf(result, disease_key: str) -> bytes:
@@ -48,7 +48,12 @@ def build_result_pdf(result, disease_key: str) -> bytes:
                            backColor=colors.HexColor("#e3f7f9")),
         ),
         Spacer(1, 16),
-        Paragraph(DISEASE_INFO.get(disease_key, {}).get("label", disease_key), h2_style),
+        Paragraph(
+            DISEASE_INFO.get(disease_key, {}).get(
+                "label", "Kidney Stone (CT Scan)" if disease_key == "kidney_stone" else disease_key,
+            ),
+            h2_style,
+        ),
     ]
 
     summary_rows = [

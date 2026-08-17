@@ -27,11 +27,14 @@ def create_app(config_class=Config):
     from .docs import spec_bp, swagger_ui_bp
     from .feedback import feedback_bp
     from .ml import predictor as ml_predictor
+    from .ml import stone_predictor
     from .predict import predict_bp
     from .user import user_bp
+    from .xray import xray_bp
 
     try:
         ml_predictor.load_all()
+        stone_predictor.load_all()
     except Exception as e:
         raise RuntimeError(f"Failed to load ML models at startup: {e}") from e
 
@@ -44,6 +47,7 @@ def create_app(config_class=Config):
     app.register_blueprint(assistant_chat_bp)
     app.register_blueprint(spec_bp)
     app.register_blueprint(swagger_ui_bp)
+    app.register_blueprint(xray_bp)
 
     @app.get("/api/health")
     def health():

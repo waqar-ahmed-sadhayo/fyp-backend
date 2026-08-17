@@ -11,3 +11,8 @@ venv/
 
 # Backup made during local debugging — not part of the shipped model set.
 app/ml/models/*.bak
+
+# Raw torch training checkpoint — safety net for re-running ONNX export,
+# not needed to serve predictions (see train_stone_model.py). The exported
+# kidney_stone.onnx/.onnx.data/_meta.json are what the app actually loads.
+app/ml/models/kidney_stone_checkpoint.pt

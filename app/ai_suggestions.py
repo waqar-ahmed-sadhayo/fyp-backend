@@ -11,16 +11,23 @@ ai_suggestions_bp = Blueprint("ai_suggestions", __name__, url_prefix="/api")
 
 
 def _build_user_message(result: TestResult) -> str:
-    disease_label = DISEASE_INFO.get(result.disease, {}).get("label", result.disease)
+    disease_label = DISEASE_INFO.get(result.disease, {}).get(
+        "label", "Kidney Stone (CT Scan)" if result.disease == "kidney_stone" else result.disease,
+    )
     lines = [
         f"Disease screened: {disease_label}",
         f"Model prediction: {result.prediction}",
         f"Confidence/probability: {result.probability * 100:.1f}%",
-        "",
-        "Input values used for this screening:",
     ]
-    for key, value in (result.input_data or {}).items():
-        lines.append(f"- {key}: {value}")
+    # Image-based screenings (kidney_stone) store {"source", "filename"}
+    # metadata, not lab values — listing those as "input values" would just
+    # confuse the model into commenting on a filename. Only include the
+    # panel for tabular (lab-value) screenings.
+    if result.disease != "kidney_stone" and result.input_data:
+        lines.append("")
+        lines.append("Input values used for this screening:")
+        for key, value in result.input_data.items():
+            lines.append(f"- {key}: {value}")
     return "\n".join(lines)
 
 

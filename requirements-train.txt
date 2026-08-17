@@ -1,0 +1,10 @@
+# Training-only dependencies for app/ml/train_stone_model.py — never
+# installed in production and deliberately kept out of requirements.txt
+# and requirements-dev.txt so `pip install -r requirements-dev.txt` (used
+# for running the test suite) stays fast. The deployed app only needs
+# onnxruntime + Pillow (in requirements.txt) to serve the exported model.
+-r requirements.txt
+
+torch --index-url https://download.pytorch.org/whl/cpu
+torchvision --index-url https://download.pytorch.org/whl/cpu
+kagglehub

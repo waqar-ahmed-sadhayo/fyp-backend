@@ -1,0 +1,26 @@
+{
+  "input_size": 224,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "threshold": 0.71,
+  "label_map": {
+    "0": "no_stone",
+    "1": "stone"
+  },
+  "metrics": {
+    "accuracy": 0.9941,
+    "precision": 0.9803,
+    "recall": 0.966,
+    "f1": 0.9731,
+    "roc_auc": 0.9991,
+    "chosen_model": "mobilenet_v2_transfer"
+  }
+}
