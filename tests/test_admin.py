@@ -98,6 +98,47 @@ def test_set_user_admin_unknown_user(client, admin_headers):
     assert res.status_code == 404
 
 
+def test_delete_user_requires_auth(client, registered_user):
+    res = client.delete(f"/api/admin/users/{registered_user['user']['id']}")
+    assert res.status_code == 401
+
+
+def test_delete_user_rejects_non_admin(client, auth_headers, registered_user):
+    res = client.delete(f"/api/admin/users/{registered_user['user']['id']}", headers=auth_headers)
+    assert res.status_code == 403
+
+
+def test_delete_user_removes_account_and_history(client, admin_headers, auth_headers, registered_user):
+    user_id = registered_user["user"]["id"]
+    client.post("/api/predict/heart", json={}, headers=auth_headers)
+    client.post("/api/feedback", json={"message": "hi"}, headers=auth_headers)
+
+    res = client.delete(f"/api/admin/users/{user_id}", headers=admin_headers)
+    assert res.status_code == 204
+
+    users = client.get("/api/admin/users", headers=admin_headers).get_json()
+    assert user_id not in [u["id"] for u in users]
+
+    feedback = client.get("/api/admin/feedback", headers=admin_headers).get_json()
+    assert feedback == []
+
+    # deleted account's own token no longer resolves to a real user
+    res = client.get("/api/auth/me", headers=auth_headers)
+    assert res.status_code == 404
+
+
+def test_delete_user_blocks_self_delete(client, admin_headers):
+    res = client.get("/api/auth/me", headers=admin_headers)
+    admin_id = res.get_json()["user"]["id"]
+    res = client.delete(f"/api/admin/users/{admin_id}", headers=admin_headers)
+    assert res.status_code == 400
+
+
+def test_delete_user_unknown_user(client, admin_headers):
+    res = client.delete("/api/admin/users/does-not-exist", headers=admin_headers)
+    assert res.status_code == 404
+
+
 def test_login_backfills_admin_status(client):
     # Register before the email is an admin email (simulated by registering a
     # different, non-admin account, then logging in — the fixture's admin

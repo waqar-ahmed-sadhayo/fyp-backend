@@ -58,6 +58,27 @@ def set_user_admin(user_id):
     return jsonify(target.to_dict()), 200
 
 
+@admin_bp.delete("/users/<user_id>")
+@admin_required
+def delete_user(user_id):
+    """Permanently deletes an account and everything tied to it (screening
+    history, feedback — both cascade via the User model's relationships).
+    Unlike set_user_admin, self-service has no recovery path here (no
+    ADMIN_EMAILS backfill for a deleted row), so deleting your own account
+    is blocked rather than just discouraged."""
+    admin_id = get_jwt_identity()
+    if user_id == admin_id:
+        return jsonify({"error": "cannot delete your own account"}), 400
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({"error": "user not found"}), 404
+
+    db.session.delete(target)
+    db.session.commit()
+    return "", 204
+
+
 @admin_bp.get("/feedback")
 @admin_required
 def list_feedback():

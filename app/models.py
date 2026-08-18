@@ -35,6 +35,8 @@ class User(db.Model):
 
     results = db.relationship("TestResult", backref="user", lazy=True,
                                cascade="all, delete-orphan")
+    feedback_items = db.relationship("Feedback", backref="user", lazy=True,
+                                      cascade="all, delete-orphan")
 
     def set_password(self, raw_password: str):
         self.password_hash = bcrypt.hashpw(raw_password.encode("utf-8"), bcrypt.gensalt())
